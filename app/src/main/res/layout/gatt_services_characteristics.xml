@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	tools:context=".DeviceControlActivity">
+
+	<com.app.progresviews.ProgressLine
+		android:id="@+id/progress_rpm"
+		android:layout_width="0dp"
+		android:layout_height="35dp"
+		android:layout_weight="0.9"
+		app:definition="rpm/min 轉速"
+		app:lineBarWidth="7dp"
+		app:lineProgressColor="#EA0000"
+		app:underLineColor="@android:color/background_dark"
+		app:value="0"
+		app:valueDefTextSize="20sp"
+		app:valuePercentage="55"
+		app:layout_constraintLeft_toLeftOf="parent"
+		app:layout_constraintRight_toRightOf="parent"
+		app:layout_constraintTop_toTopOf="parent"
+		android:layout_marginTop="35dp"
+		android:layout_marginStart="16dp"/>
+	<com.app.progresviews.ProgressLine
+		android:id="@+id/progress_speed"
+		android:layout_width="0dp"
+		android:layout_height="35dp"
+		android:layout_weight="0.9"
+		app:definition="km/h 時速"
+		app:value="0"
+		app:lineBarWidth="7dp"
+		app:valuePercentage="55"
+		app:valueDefTextSize="20sp"
+		app:lineProgressColor="#F75000"
+		app:underLineColor="@android:color/background_dark"
+		app:layout_constraintLeft_toLeftOf="parent"
+		app:layout_constraintRight_toRightOf="parent"
+		app:layout_constraintTop_toTopOf="parent"
+		android:layout_marginTop="85dp"
+		android:layout_marginStart="16dp"/>
+	<com.app.progresviews.ProgressLine
+		android:id="@+id/progress_throttle"
+		android:layout_width="0dp"
+		android:layout_height="35dp"
+		android:layout_weight="0.9"
+		app:definition="% 油門開度"
+		app:value="0"
+		app:lineBarWidth="7dp"
+		app:valuePercentage="55"
+		app:valueDefTextSize="20sp"
+		app:lineProgressColor="#8CEA00"
+		app:underLineColor="@android:color/background_dark"
+		app:layout_constraintLeft_toLeftOf="parent"
+		app:layout_constraintRight_toRightOf="parent"
+		app:layout_constraintTop_toTopOf="parent"
+		android:layout_marginTop="120dp"
+		android:layout_marginStart="16dp"/>
+
+	<com.app.progresviews.ProgressLine
+		android:id="@+id/progress_airflow"
+		android:layout_width="0dp"
+		android:layout_height="35dp"
+		android:layout_weight="0.9"
+		app:definition="% 空氣流量比"
+		app:value="0"
+		app:lineBarWidth="7dp"
+		app:valuePercentage="55"
+		app:valueDefTextSize="20sp"
+		app:lineProgressColor="#616130"
+		app:underLineColor="@android:color/background_dark"
+		app:layout_constraintLeft_toLeftOf="parent"
+		app:layout_constraintRight_toRightOf="parent"
+		app:layout_constraintTop_toTopOf="parent"
+		android:layout_marginTop="155dp"
+		android:layout_marginStart="16dp"/>
+
+	<com.app.progresviews.ProgressLine
+		android:id="@+id/progress_barometric"
+		android:layout_width="0dp"
+		android:layout_height="35dp"
+		android:layout_weight="0.9"
+		app:definition="kpa 大氣壓力"
+		app:value="0"
+		app:lineBarWidth="7dp"
+		app:valuePercentage="55"
+		app:valueDefTextSize="20sp"
+		app:lineProgressColor="#984B4B"
+		app:underLineColor="@android:color/background_dark"
+		app:layout_constraintLeft_toLeftOf="parent"
+		app:layout_constraintRight_toRightOf="parent"
+		app:layout_constraintTop_toTopOf="parent"
+		android:layout_marginTop="190dp"
+		android:layout_marginStart="16dp"/>
+	<ImageView
+		app:layout_constraintLeft_toLeftOf="parent"
+		app:layout_constraintRight_toRightOf="parent"
+		app:layout_constraintTop_toTopOf="parent"
+		android:layout_marginTop="250dp"
+		android:layout_marginStart="16dp"
+		android:layout_centerInParent="true"
+		android:id="@+id/iv_bike"
+		android:layout_width="100dp"
+		android:layout_height="100dp"
+		android:src="@drawable/bike" />
+<LinearLayout android:id="@+id/tvLinearLayout"
+	android:orientation="vertical"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="#FFFFFFFF"
+	android:layout_marginTop="370dp">
+
+
+		<ScrollView android:id="@+id/svResult"
+		android:layout_width="fill_parent"
+		android:layout_height="fill_parent"
+		android:layout_weight="1.0"
+		android:background="#FFFFFFFF">
+
+        <TextView
+            android:focusable="true"
+			android:focusableInTouchMode="true"
+            android:id="@+id/data_value"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:text="@string/no_data"
+            android:textSize="16sp"/>
+
+		</ScrollView>
+    <TableLayout android:id="@+id/TableLayout02"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:layout_margin="0px"
+		android:stretchColumns="0"
+		android:layout_gravity="bottom">
+		<TableRow>
+			<EditText
+    			android:id="@+id/edtSend"
+    			android:layout_width="fill_parent"
+    			android:layout_height="wrap_content"
+    			android:layout_span="4"/>
+			<Button android:id="@+id/btnSend"
+				android:layout_height="wrap_content"
+				android:layout_width="wrap_content"
+				android:text="@string/send"
+				android:layout_gravity="bottom">
+			</Button>
+		</TableRow>
+	</TableLayout>
+</LinearLayout>
+</android.support.constraint.ConstraintLayout>
