@@ -8,8 +8,16 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class export_csv {
+    public String getFilename() {
+        return filename;
+    }
+
+    public void setFilename(String filename) {
+        this.filename = this.fileforder+filename;
+    }
+
     private String filename;
-    private boolean state;
+    private boolean state = false;
     private final String fileforder = Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator+"bike";
 
     public export_csv(String filename) {

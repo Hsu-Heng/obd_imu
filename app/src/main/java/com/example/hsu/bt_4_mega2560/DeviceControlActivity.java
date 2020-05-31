@@ -38,6 +38,7 @@ import android.widget.Toast;
 
 import com.app.progresviews.ProgressLine;
 
+import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -67,6 +68,9 @@ public class DeviceControlActivity extends Activity implements LocationListener,
     EditText edtSend;
     ScrollView svResult;
     Button btnSend;
+
+    EditText edt_filename;
+    Button btn_write_data;
     float last_degree, nextdegree;
     private LocationManager mLocationManager;
     private static Data data;
@@ -93,8 +97,10 @@ public class DeviceControlActivity extends Activity implements LocationListener,
     private MadgwickAHRS mMadgwickAHRS = new MadgwickAHRS(0.01f, 0.00001f);
     private int counter = 0;
     private String myreceive = "";
+    private export_csv mycsv = new export_csv("defaultname");
 
 
+    private int bike_speed, bike_rpm, bike_af, bike_bio, bike_tps;
     private float ax, ay, az, gx, gy, gz, mx, my, mz;
     private float xy_angle, xz_angle, zy_angle;
 
@@ -171,6 +177,23 @@ public class DeviceControlActivity extends Activity implements LocationListener,
         btnSend = (Button) this.findViewById(R.id.btnSend);
         btnSend.setOnClickListener(new ClickEvent());
         btnSend.setEnabled(false);
+        edt_filename = (EditText)this.findViewById(R.id.edt_filename);
+        btn_write_data = (Button)this.findViewById(R.id.btn_write_state);
+        btn_write_data.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mycsv.setFilename(edt_filename.getText().toString());
+                mycsv.setState(!mycsv.isState());
+                if(mycsv.isState()){
+                    btn_write_data.setText("寫入中");
+                }
+                else{
+                    btn_write_data.setText("未寫入");
+                }
+            }
+        });
+
+
         progress_rpm = (ProgressLine) this.findViewById(R.id.progress_rpm);
         progress_rpm.setmPercentage(0);
         progress_speed = (ProgressLine) this.findViewById(R.id.progress_speed);
@@ -270,6 +293,7 @@ public class DeviceControlActivity extends Activity implements LocationListener,
 //                s.setSpan(new RelativeSizeSpan(0.5f), s.length() - speedUnits.length() - 1, s.length(), 0);
                 progress_speed.setmPercentage(gps_percantage);
                 progress_speed.setmValueText(String.valueOf(CurSpeed));
+                bike_speed = (int)CurSpeed;
                 Log.d("Speed","updatespeed"+String.valueOf(CurSpeed));
 
 //                s = new SpannableString(String.format("%.0f %s", averageTemp, speedUnits));
@@ -481,10 +505,10 @@ public class DeviceControlActivity extends Activity implements LocationListener,
                     mMadgwickAHRS.update(gx, gy, gz, ax, ay, az, mx, my, mz);
 
                     counter++;
-
-                    if ( counter > 50 ) {
+                    float[] eulerAngles = mMadgwickAHRS.getEulerAngles();
+                    if ( counter > 20 ) {
                         float[] quaternion = mMadgwickAHRS.getQuaternion();
-                        float[] eulerAngles = mMadgwickAHRS.getEulerAngles();
+//                        float[] eulerAngles = mMadgwickAHRS.getEulerAngles();
                         nextdegree = eulerAngles[2];
                         RotateAnimation ra = new RotateAnimation(
                                 last_degree,
@@ -521,6 +545,18 @@ public class DeviceControlActivity extends Activity implements LocationListener,
 
                         counter = 0;
                     }
+                    if(mycsv.isState()){
+                        String writecsv = String.format ("%.2f", ax)+","+String.format ("%.2f", ay)+","+String.format ("%.2f", az)+",";
+                        writecsv += String.format ("%.2f", gx)+","+String.format ("%.2f", gy)+","+String.format ("%.2f", gz)+",";
+                        writecsv += String.format ("%.2f", mx)+","+String.format ("%.2f", my)+","+String.format ("%.2f", mz)+",";
+                        writecsv += String.format ("%.2f", eulerAngles[0])+","+String.format ("%.2f", eulerAngles[1])+","+String.format ("%.2f", eulerAngles[2])+",";
+                        writecsv += bike_speed+","+bike_rpm+","+bike_tps+","+bike_af+","+bike_bio;
+                        try {
+                            mycsv.write_csv(writecsv);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             });
         }
@@ -554,26 +590,31 @@ public class DeviceControlActivity extends Activity implements LocationListener,
                                 case "11":
                                     progress_throttle.setmPercentage(value);
                                     progress_throttle.setmValueText(splt_r[2]);
+                                    bike_tps = value;
                                     break;
                                 case "0C":
                                     percentange = value / 100;
                                     progress_rpm.setmPercentage((int) percentange);
                                     progress_rpm.setmValueText(splt_r[2]);
+                                    bike_rpm = value;
                                     break;
                                 case "0D":
                                     percentange = value / 2.55f;
                                     progress_speed.setmPercentage((int) percentange);
                                     progress_speed.setmValueText(splt_r[2]);
+                                    bike_speed = value;
                                     break;
                                 case "10":
                                     percentange = value / 6.56f;
                                     progress_airflow.setmPercentage((int) percentange);
                                     progress_airflow.setmValueText(splt_r[2]);
+                                    bike_af = value;
                                     break;
                                 case "33":
                                     percentange = value / 2.55f;
                                     progress_barometric.setmPercentage((int) percentange);
                                     progress_barometric.setmValueText(splt_r[2]);
+                                    bike_bio = value;
                                     break;
                                 default:
                                     break;

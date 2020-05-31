@@ -6,6 +6,7 @@
 	android:layout_height="match_parent"
 	tools:context=".DeviceControlActivity">
 
+
 	<com.app.progresviews.ProgressLine
 		android:id="@+id/progress_rpm"
 		android:layout_width="0dp"
@@ -112,22 +113,24 @@
 	android:layout_marginTop="370dp">
 
 
-		<ScrollView android:id="@+id/svResult"
-		android:layout_width="fill_parent"
-		android:layout_height="fill_parent"
-		android:layout_weight="1.0"
-		android:background="#FFFFFFFF">
-
-        <TextView
-            android:focusable="true"
+	<ScrollView
+		android:layout_width="match_parent"
+		android:layout_height="60dp"
+		android:id="@+id/svResult">
+		<TextView
+			android:id="@+id/data_value"
+			android:layout_width="match_parent"
+			android:layout_height="60dp"
+			android:focusable="true"
 			android:focusableInTouchMode="true"
-            android:id="@+id/data_value"
-            android:layout_width="match_parent"
-            android:layout_height="30dp"
-            android:text="@string/no_data"
-            android:textSize="16sp"/>
+			android:text="@string/no_data"
+			android:textSize="10sp" />
 
-		</ScrollView>
+	</ScrollView>
+
+
+
+
     <TableLayout android:id="@+id/TableLayout02"
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
@@ -135,12 +138,25 @@
 		android:stretchColumns="0"
 		android:layout_gravity="bottom">
 		<TableRow>
+		<EditText
+			android:id="@+id/edtSend"
+			android:layout_width="fill_parent"
+			android:layout_height="wrap_content"
+			android:layout_span="4"/>
+		<Button android:id="@+id/btnSend"
+			android:layout_height="wrap_content"
+			android:layout_width="wrap_content"
+			android:text="@string/send"
+			android:layout_gravity="bottom">
+		</Button>
+	</TableRow>
+		<TableRow>
 			<EditText
-    			android:id="@+id/edtSend"
-    			android:layout_width="fill_parent"
-    			android:layout_height="wrap_content"
-    			android:layout_span="4"/>
-			<Button android:id="@+id/btnSend"
+				android:id="@+id/edt_filename"
+				android:layout_width="fill_parent"
+				android:layout_height="wrap_content"
+				android:layout_span="4"/>
+			<Button android:id="@+id/btn_write_state"
 				android:layout_height="wrap_content"
 				android:layout_width="wrap_content"
 				android:text="@string/send"
