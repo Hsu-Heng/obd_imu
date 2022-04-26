@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:layout_width="match_parent"
+	android:layout_height="fill_parent" >
+	<SurfaceView
+		android:layout_marginTop="250dp"
+		android:layout_marginStart="16dp"
+		android:layout_width="100dp"
+		android:layout_height="100dp"
+		android:id="@+id/surfaceView"
+		/>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:app="http://schemas.android.com/apk/res-auto"
 	xmlns:tools="http://schemas.android.com/tools"
@@ -105,6 +115,7 @@
 		android:layout_width="100dp"
 		android:layout_height="100dp"
 		android:src="@drawable/bike" />
+
 <LinearLayout android:id="@+id/tvLinearLayout"
 	android:orientation="vertical"
   android:layout_width="match_parent"
@@ -138,31 +149,42 @@
 		android:stretchColumns="0"
 		android:layout_gravity="bottom">
 		<TableRow>
-		<EditText
-			android:id="@+id/edtSend"
-			android:layout_width="fill_parent"
-			android:layout_height="wrap_content"
-			android:layout_span="4"/>
-		<Button android:id="@+id/btnSend"
-			android:layout_height="wrap_content"
-			android:layout_width="wrap_content"
-			android:text="@string/send"
-			android:layout_gravity="bottom">
-		</Button>
+
+			<TextView
+				android:id="@+id/data_geo"
+				android:layout_width="146dp"
+				android:layout_height="60dp"
+				android:focusable="true"
+				android:focusableInTouchMode="true"
+				android:text="@string/no_data"
+				android:textSize="10sp" />
+<!--		<EditText-->
+<!--			android:id="@+id/edtSend"-->
+<!--			android:layout_width="fill_parent"-->
+<!--			android:layout_height="wrap_content"-->
+<!--			android:layout_span="4"/>-->
+<!--		<Button android:id="@+id/btnSend"-->
+<!--			android:layout_height="wrap_content"-->
+<!--			android:layout_width="wrap_content"-->
+<!--			android:text="@string/send"-->
+<!--			android:layout_gravity="bottom">-->
+<!--		</Button>-->
 	</TableRow>
 		<TableRow>
 			<EditText
 				android:id="@+id/edt_filename"
 				android:layout_width="fill_parent"
 				android:layout_height="wrap_content"
+				android:text="請輸入檔名"
 				android:layout_span="4"/>
 			<Button android:id="@+id/btn_write_state"
 				android:layout_height="wrap_content"
 				android:layout_width="wrap_content"
-				android:text="@string/send"
+				android:text="未寫入"
 				android:layout_gravity="bottom">
 			</Button>
 		</TableRow>
 	</TableLayout>
 </LinearLayout>
 </android.support.constraint.ConstraintLayout>
+</FrameLayout>

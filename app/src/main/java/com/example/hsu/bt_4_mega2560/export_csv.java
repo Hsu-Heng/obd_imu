@@ -31,7 +31,7 @@ public class export_csv {
         this.state = state;
     }
     public void write_csv(String data) throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter(new File(this.filename)));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(new File(this.filename),true));
         writer.write(data);
         writer.write("\n");
         writer.flush();
