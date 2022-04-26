@@ -18,6 +18,14 @@ import android.support.v4.app.ActivityCompat;
 public class GpsService extends Service implements LocationListener, GpsStatus.Listener {
     private LocationManager mLocationManager;
 
+    public Location getLastlocation() {
+        return lastlocation;
+    }
+
+    public void setLastlocation(Location lastlocation) {
+        this.lastlocation = lastlocation;
+    }
+
     Location lastlocation = new Location("last");
     Data data;
 

@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.hardware.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -18,17 +19,21 @@ import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -38,6 +43,8 @@ import android.widget.Toast;
 
 import com.app.progresviews.ProgressLine;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -56,6 +63,7 @@ public class DeviceControlActivity extends Activity implements LocationListener,
     private StringBuffer bluetoothintentdata = new StringBuffer();
     private StringBuffer bufferdata;
     private boolean mConnected = false;
+    private static final int REQUEST_LOCATION = 1;
     private int copycount = 0;
     boolean retuens;
     private ProgressLine progress_rpm = null;
@@ -63,17 +71,24 @@ public class DeviceControlActivity extends Activity implements LocationListener,
     private ProgressLine progress_throttle = null;
     private ProgressLine progress_airflow = null;
     private ProgressLine progress_barometric = null;
+    private SurfaceView surfaceView;
+    private SurfaceHolder.Callback callback;   //
+    private Camera camera;
+    private MediaRecorder mediaRecorder;
     private ImageView imu_view;
-    EditText edtSend;
+    //    EditText edtSend;
     ScrollView svResult;
-    Button btnSend;
+    //    Button btnSend;
+    TextView data_geo;
+    EditText edt_filename;
+    Button btn_write_data;
     float last_degree, nextdegree;
     private LocationManager mLocationManager;
     private static Data data;
-    private Data.OnGpsServiceUpdate onGpsServiceUpdate;
     int gps_speed;
     int gps_percantage;
     int max_speed = 240;
+    private boolean getGPSService = false;
     // obd_update
     private Handler mUI_Handler = new Handler();
     // IMU
@@ -86,6 +101,7 @@ public class DeviceControlActivity extends Activity implements LocationListener,
     private Sensor mGyroscope;
     private Sensor mMagnetometr;
     private Sensor mOrientation;
+    private String lat, lon;
     private long receive_time;
     private obd_ring_buffer my_ring_buffer = new obd_ring_buffer();
     private ble_receiver_data receiver_data;
@@ -93,8 +109,10 @@ public class DeviceControlActivity extends Activity implements LocationListener,
     private MadgwickAHRS mMadgwickAHRS = new MadgwickAHRS(0.01f, 0.00001f);
     private int counter = 0;
     private String myreceive = "";
+    private export_csv mycsv = new export_csv("defaultname");
+    private String bestGPSProvider = LocationManager.GPS_PROVIDER;
 
-
+    private int bike_speed, bike_rpm, bike_af, bike_bio, bike_tps;
     private float ax, ay, az, gx, gy, gz, mx, my, mz;
     private float xy_angle, xz_angle, zy_angle;
 
@@ -125,14 +143,14 @@ public class DeviceControlActivity extends Activity implements LocationListener,
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) { //�Ͽ�����
                 mConnected = false;
                 invalidateOptionsMenu();
-                btnSend.setEnabled(false);
+//                btnSend.setEnabled(false);
 
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) //���Կ�ʼ�ɻ���
             {
                 mConnected = true;
                 mDataField.setText("");
                 ShowDialog();
-                btnSend.setEnabled(true);
+//                btnSend.setEnabled(true);
                 Log.e(TAG, "In what we need");
                 invalidateOptionsMenu();
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
@@ -140,8 +158,8 @@ public class DeviceControlActivity extends Activity implements LocationListener,
                 String data = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
                 if (data != null) {
                     long time = System.currentTimeMillis();
-                    ble_receiver_data newdata = new ble_receiver_data(time,data);
-                    if(my_ring_buffer.full()==false){
+                    ble_receiver_data newdata = new ble_receiver_data(time, data);
+                    if (my_ring_buffer.full() == false) {
                         my_ring_buffer.put(newdata);
                     }
 
@@ -164,13 +182,31 @@ public class DeviceControlActivity extends Activity implements LocationListener,
 
         // Sets up UI references.
         mDataField = (TextView) findViewById(R.id.data_value);
-        edtSend = (EditText) this.findViewById(R.id.edtSend);
-        edtSend.setText("Welcome ");
+//        edtSend = (EditText) this.findViewById(R.id.edtSend);
+//        edtSend.setText("Welcome ");
         svResult = (ScrollView) this.findViewById(R.id.svResult);
+        data_geo = (TextView) this.findViewById(R.id.data_geo);
+//        btnSend = (Button) this.findViewById(R.id.btnSend);
+//        btnSend.setOnClickListener(new ClickEvent());
+//        btnSend.setEnabled(false);
+        edt_filename = (EditText) this.findViewById(R.id.edt_filename);
+        btn_write_data = (Button) this.findViewById(R.id.btn_write_state);
+        btn_write_data.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mycsv.setFilename(edt_filename.getText().toString() + ".csv");
+                mycsv.setState(!mycsv.isState());
+                if (mycsv.isState()) {
+                    btn_write_data.setText("寫入中");
+                    startVoide(true);
+                } else {
+                    btn_write_data.setText("未寫入");
+                    startVoide(false);
+                }
+            }
+        });
 
-        btnSend = (Button) this.findViewById(R.id.btnSend);
-        btnSend.setOnClickListener(new ClickEvent());
-        btnSend.setEnabled(false);
+
         progress_rpm = (ProgressLine) this.findViewById(R.id.progress_rpm);
         progress_rpm.setmPercentage(0);
         progress_speed = (ProgressLine) this.findViewById(R.id.progress_speed);
@@ -256,33 +292,15 @@ public class DeviceControlActivity extends Activity implements LocationListener,
             }
         };
 
-        onGpsServiceUpdate = new Data.OnGpsServiceUpdate() {
-            @Override
-            public void update() {
-                double CurSpeed = data.getCurSpeed();
-                gps_percantage = (int) (CurSpeed / max_speed);
-//
-//                String speedUnits;
-//                String distanceUnits;
-//                speedUnits = "km/h";
-//
-//                SpannableString s = new SpannableString(String.format("%.0f %s", CurSpeed, speedUnits));
-//                s.setSpan(new RelativeSizeSpan(0.5f), s.length() - speedUnits.length() - 1, s.length(), 0);
-                progress_speed.setmPercentage(gps_percantage);
-                progress_speed.setmValueText(String.valueOf(CurSpeed));
-                Log.d("Speed","updatespeed"+String.valueOf(CurSpeed));
-
-//                s = new SpannableString(String.format("%.0f %s", averageTemp, speedUnits));
-//                s.setSpan(new RelativeSizeSpan(0.5f), s.length() - speedUnits.length() - 1, s.length(), 0);
-//                averageSpeed.setText(s);
-//
-//                s = new SpannableString(String.format("%.3f %s", distanceTemp, distanceUnits));
-//                s.setSpan(new RelativeSizeSpan(0.5f), s.length() - distanceUnits.length() - 1, s.length(), 0);
-//                distance.setText(s);
-            }
-        };
 
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            locationServiceInitial();
+        } else {
+            Toast.makeText(this, "請開啟定位服務", Toast.LENGTH_LONG).show();
+            getGPSService = true; //確認開啟定位服務
+            startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)); //開啟設定頁面
+        }
 
 
         Timer mTimer;
@@ -296,6 +314,47 @@ public class DeviceControlActivity extends Activity implements LocationListener,
         ReceiveTimer = new Timer();
         receiverTask = new ReceiverTask();
         ReceiveTimer.schedule(receiverTask, 1000, 10); // 100Hz
+        surfaceView = (SurfaceView) this.findViewById(R.id.surfaceView);
+        callback = new MyCallback();
+        surfaceView.getHolder().addCallback(callback);
+    }
+
+    private void locationServiceInitial() {
+        mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE); //取得系統定位服務
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission
+                (this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            ActivityCompat.requestPermissions(DeviceControlActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION);
+
+        } else {
+            Location location = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+            Location location1 = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            if(location != null){
+                getLocation(location);
+            }
+            else if(location1 != null){
+                getLocation(location1);
+            }
+        }
+
+
+    }
+    private void getLocation(Location location) { //將定位資訊顯示在畫面中
+        if(location != null) {
+            lat = String.valueOf(location.getLatitude());
+            lon = String.valueOf(location.getLongitude());
+            bike_speed = (int)(location.getSpeed());
+            gps_percantage = (int) (bike_speed / max_speed);
+            progress_speed.setmPercentage(gps_percantage);
+            progress_speed.setmValueText(String.valueOf(bike_speed));
+            data_geo.setText(lat +"\r"+lon);
+        }
+        else {
+            Toast.makeText(this, "無法定位座標", Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
@@ -315,11 +374,11 @@ public class DeviceControlActivity extends Activity implements LocationListener,
                 mMagnetometr,
                 SensorManager.SENSOR_DELAY_GAME);
 
-        if (data == null) {
-            data = new Data(onGpsServiceUpdate);
-        } else {
-            data.setOnGpsServiceUpdate(onGpsServiceUpdate);
-        }
+//        if (data == null) {
+//            data = new Data(onGpsServiceUpdate);
+//        } else {
+//            data.setOnGpsServiceUpdate(onGpsServiceUpdate);
+//        }
 
 //        if (mLocationManager.getAllProviders().indexOf(LocationManager.GPS_PROVIDER) >= 0) {
 //            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -344,10 +403,15 @@ public class DeviceControlActivity extends Activity implements LocationListener,
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
+            ActivityCompat.requestPermissions(DeviceControlActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION);
+
             return;
         }
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 500, 0, (LocationListener) this);
-        mLocationManager.addGpsStatusListener((GpsStatus.Listener) this);
+        if(getGPSService) {
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 100, 0, (LocationListener) this);
+            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 100, 0, (LocationListener) this);
+        }
+
     }
 
     @Override
@@ -359,6 +423,9 @@ public class DeviceControlActivity extends Activity implements LocationListener,
         mSensorManager.unregisterListener(onRecieveAccListener);
         mSensorManager.unregisterListener(onRecieveGyroListener);
         mSensorManager.unregisterListener(onRecieveOrientationListener);
+        if(getGPSService) {
+            mLocationManager.removeUpdates(this);   //離開頁面時停止更新
+        }
     }
 
     @Override
@@ -421,6 +488,7 @@ public class DeviceControlActivity extends Activity implements LocationListener,
 
     @Override
     public void onLocationChanged(Location location) {
+        getLocation(location);
 
     }
 
@@ -436,29 +504,11 @@ public class DeviceControlActivity extends Activity implements LocationListener,
 
     @Override
     public void onProviderDisabled(String s) {
+        Toast.makeText(this, "請開啟gps或3G網路", Toast.LENGTH_LONG).show();
 
     }
 
-    class ClickEvent implements View.OnClickListener {
-        @Override
-        public void onClick(View v) {
-            if (v == btnSend) {
-                if(!mConnected) return;
 
-                if (edtSend.length() < 1) {
-                    Toast.makeText(DeviceControlActivity.this, "find", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                mBluetoothLeService.WriteValue(edtSend.getText().toString());
-
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                if(imm.isActive())
-                    imm.hideSoftInputFromWindow(edtSend.getWindowToken(), 0);
-                //todo Send data
-            }
-        }
-
-    }
 
     private static IntentFilter makeGattUpdateIntentFilter() {                        //ע����յ��¼�
         final IntentFilter intentFilter = new IntentFilter();
@@ -481,10 +531,10 @@ public class DeviceControlActivity extends Activity implements LocationListener,
                     mMadgwickAHRS.update(gx, gy, gz, ax, ay, az, mx, my, mz);
 
                     counter++;
-
-                    if ( counter > 50 ) {
+                    float[] eulerAngles = mMadgwickAHRS.getEulerAngles();
+                    if ( counter > 20 ) {
                         float[] quaternion = mMadgwickAHRS.getQuaternion();
-                        float[] eulerAngles = mMadgwickAHRS.getEulerAngles();
+//                        float[] eulerAngles = mMadgwickAHRS.getEulerAngles();
                         nextdegree = eulerAngles[2];
                         RotateAnimation ra = new RotateAnimation(
                                 last_degree,
@@ -498,28 +548,23 @@ public class DeviceControlActivity extends Activity implements LocationListener,
 
                         imu_view.startAnimation(ra);
                         last_degree = nextdegree;
-//                        madZView.setText(String.format ("%.3f", quaternion[3]));
-//                        madYView.setText(String.format ("%.3f", quaternion[2]));
-//                        madXView.setText(String.format ("%.3f", quaternion[1]));
-//                        madWView.setText(String.format ("%.3f", quaternion[0]));
-//
-//                        axView.setText(String.format ("%.2f", ax));
-//                        ayView.setText(String.format ("%.2f", ay));
-//                        azView.setText(String.format ("%.2f", az));
-//
-//                        gxView.setText(String.format ("%.2f", gx));
-//                        gyView.setText(String.format ("%.2f", gy));
-//                        gzView.setText(String.format ("%.2f", gz));
-//
-//                        xyView.setText(String.format ("%.2f", xy_angle));
-//                        xzView.setText(String.format ("%.2f", xz_angle));
-//                        zyView.setText(String.format ("%.2f", zy_angle));
-//
-//                        xyViewM.setText(String.format ("%.2f", eulerAngles[0]));
-//                        xzViewM.setText(String.format ("%.2f", eulerAngles[1]));
-//                        zyViewM.setText(String.format ("%.2f", eulerAngles[2]));
+
 
                         counter = 0;
+                    }
+                    if(mycsv.isState()){
+                        long time = System.currentTimeMillis();
+                        String writecsv = String.format ("%.2f", ax)+","+String.format ("%.2f", ay)+","+String.format ("%.2f", az)+",";
+                        writecsv += String.format ("%.2f", gx)+","+String.format ("%.2f", gy)+","+String.format ("%.2f", gz)+",";
+                        writecsv += String.format ("%.2f", mx)+","+String.format ("%.2f", my)+","+String.format ("%.2f", mz)+",";
+                        writecsv += String.format ("%.2f", eulerAngles[0])+","+String.format ("%.2f", eulerAngles[1])+","+String.format ("%.2f", eulerAngles[2])+",";
+                        writecsv += String.format("%d", bike_speed)+","+String.format("%d", bike_rpm)+","+String.format("%d", bike_tps)+","+String.format("%d", bike_af)+","+String.format("%d", bike_bio)+",";
+                        writecsv += lat+","+lon+","+String.format("%d", time);
+                        try {
+                            mycsv.write_csv(writecsv);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             });
@@ -554,26 +599,31 @@ public class DeviceControlActivity extends Activity implements LocationListener,
                                 case "11":
                                     progress_throttle.setmPercentage(value);
                                     progress_throttle.setmValueText(splt_r[2]);
+                                    bike_tps = value;
                                     break;
                                 case "0C":
                                     percentange = value / 100;
                                     progress_rpm.setmPercentage((int) percentange);
                                     progress_rpm.setmValueText(splt_r[2]);
+                                    bike_rpm = value;
                                     break;
-                                case "0D":
-                                    percentange = value / 2.55f;
-                                    progress_speed.setmPercentage((int) percentange);
-                                    progress_speed.setmValueText(splt_r[2]);
-                                    break;
+//                                case "0D":
+//                                    percentange = value / 2.55f;
+//                                    progress_speed.setmPercentage((int) percentange);
+//                                    progress_speed.setmValueText(splt_r[2]);
+//                                    bike_speed = value;
+//                                    break;
                                 case "10":
                                     percentange = value / 6.56f;
                                     progress_airflow.setmPercentage((int) percentange);
                                     progress_airflow.setmValueText(splt_r[2]);
+                                    bike_af = value;
                                     break;
                                 case "33":
                                     percentange = value / 2.55f;
                                     progress_barometric.setmPercentage((int) percentange);
                                     progress_barometric.setmValueText(splt_r[2]);
+                                    bike_bio = value;
                                     break;
                                 default:
                                     break;
@@ -590,5 +640,96 @@ public class DeviceControlActivity extends Activity implements LocationListener,
             });
         }
     }
+    private class MyCallback implements SurfaceHolder.Callback   //回调类
+    {
+
+        @Override
+        public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2,
+                                   int arg3) {
+            // TODO Auto-generated method stub
+
+        }
+
+        @Override
+        public void surfaceCreated(SurfaceHolder arg0) {
+            // TODO Auto-generated method stub
+            try
+            {
+                camera = android.hardware.Camera.open();
+                camera.setDisplayOrientation(90);
+
+                camera.setPreviewDisplay(surfaceView.getHolder());
+                camera.startPreview();
+            }catch(Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void surfaceDestroyed(SurfaceHolder arg0) {
+            // TODO Auto-generated method stub
+            if(camera != null)
+            {
+                camera.stopPreview();   //停止预览
+                camera.release();      //释放资源
+                camera = null;
+            }
+        }
+
+    }
+
+    public void startVoide(boolean status)
+    {
+        if(status){
+            try
+            {
+                String filepath = "/sdcard/"+"bike"
+                        +  System.currentTimeMillis() + ".mp4";
+                File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+ File.separator+"bike"
+                        +  System.currentTimeMillis() + ".mp4");
+                camera.unlock();
+                mediaRecorder = new MediaRecorder();    //媒体录制对象
+                mediaRecorder.setCamera(camera);   //设置摄像
+                mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+                mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+                mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);  //设置输出的文件的格式
+                mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);   //设置编码
+                mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+                mediaRecorder.setOutputFile(filepath);   //设置输出文件的路径
+                mediaRecorder.setVideoSize(320, 240);  //设置video的大小
+                mediaRecorder.setVideoFrameRate(5);
+                mediaRecorder.setPreviewDisplay(surfaceView.getHolder().getSurface());
+                mediaRecorder.prepare();   //缓冲
+                mediaRecorder.start();   //开始录制
+
+            }catch (Exception e) {
+                // TODO: handle exception
+                e.printStackTrace();
+            }
+        }else{
+            if(mediaRecorder != null)
+            {
+                mediaRecorder.setOnErrorListener(null);
+                mediaRecorder.setOnInfoListener(null);
+                mediaRecorder.setPreviewDisplay(null);
+                try {
+                    mediaRecorder.stop();
+                    mediaRecorder.reset();
+                    mediaRecorder.release();
+                } catch (IllegalStateException e) {
+                    e.printStackTrace();
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                camera.lock();
+                mediaRecorder = null;
+            }
+        }
+
+
+        }
 
 }
